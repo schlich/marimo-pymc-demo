@@ -33,7 +33,7 @@ def _(mo):
             - Looking for new opportunities!
             """),
             mo.image(
-                "inspectFit.jpg",
+                "public/inspectFit.jpg",
                 caption="Figure from Palamedes Toolbox (MATLAB) documentation. Bayesian logistic regression is a standard method at the core of 'psychophysics' - the science of quantifying sensation",
             ),
         ]
@@ -45,7 +45,7 @@ def _(mo):
 def _(mo):
     mo.hstack(
         [
-            mo.image("Bayesian_workflow.png"),
+            mo.image("public/Bayesian_workflow.png"),
             mo.md("""
             - Bayesian model-building involves a complex and time consuming iteration process
             - Out of the box, Marimo's reactive execution saves countless hours of recomputation as adjustments are made at various levels
