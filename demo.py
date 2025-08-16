@@ -60,13 +60,24 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    prior_mu = mo.ui.number(value=0, label=r"$\mu_{height} (cm)$")
-    prior_sigma = mo.ui.number(value=10, label=r"$\sigma_{height} (cm)$")
-    return prior_mu, prior_sigma
+    prior = (
+        mo.md("""
+        **Prior hyperparameters**
+
+        {mu}
+
+        {sigma}
+    """).batch(
+            mu=mo.ui.number(value=0, label=r"$\mu_{height} (cm)$"),
+            sigma=mo.ui.number(value=10, label=r"$\sigma_{height} (cm)$"),
+        )
+        # .form(show_clear_button=True, bordered=False)
+    )
+    return (prior,)
 
 
 @app.cell
-def _(mo, prior_mu, prior_sigma):
+def _(mo, prior):
     mo.md(
         r"""#### Simple example of adjusting priors: from [Exploratory Analysis of Bayesian models](https://arviz-devs.github.io/EABM/Chapters/Prior_posterior_predictive_checks.html)"""
     )
@@ -74,7 +85,7 @@ def _(mo, prior_mu, prior_sigma):
     y = np.random.normal(174, 6, 127)
 
     with pm.Model() as model:
-        mu = pm.Normal("mu", mu=prior_mu.value, sigma=prior_sigma.value)
+        mu = pm.Normal("mu", mu=prior.value["mu"], sigma=prior.value["sigma"])
         sigma = pm.HalfNormal("sigma", sigma=10)
 
         y_obs = pm.Normal("Y_obs", mu=mu, sigma=sigma, observed=y)
@@ -86,11 +97,10 @@ def _(mo, prior_mu, prior_sigma):
         [
             mo.vstack(
                 [
-                    prior_mu,
-                    prior_sigma,
+                    prior,
                     mo.md("""
         Notes: 
-    
+
         - Tallest person in the world ~ 250 cm
         - Shortest person in the world ~ 50 cm
     """),
@@ -424,30 +434,43 @@ def _(sys):
 
 
 @app.cell
-def _(PyMCProgress, mo):
+def _(PyMCProgress):
     progress_tracker = PyMCProgress(
         num_chains=4,
         tune_steps_per_chain=200,
         draw_steps_per_chain=200,
     )
-    run_button = mo.ui.run_button(label="Run Inferencing!")
-    run_button
-    return progress_tracker, run_button
+    return (progress_tracker,)
 
 
 @app.cell
 def _(mo, progress_tracker):
-    mo.hstack([
-        mo.vstack(
-            [
-                mo.md("## A custom Anywidget progress tracker for the MC Sampler"),
-                mo.md("---"),
-                mo.md("View this notebook on **molab** for source code & example details."),
-                mo.md("> Note: There is an open [pull request](https://github.com/pymc-devs/pymc/pull/7883) in the PyMC repo for out-of-the-box progress tracking!"),
-                progress_tracker.display_widget,
-            ]
-        ),
-        mo.md("""
+    progress_tracker
+    run_button = mo.ui.run_button(label="Run Inferencing!")
+    run_button
+    return (run_button,)
+
+
+@app.cell
+def _(mo, progress_tracker):
+    mo.hstack(
+        [
+            mo.vstack(
+                [
+                    mo.md(
+                        "## A custom Anywidget progress tracker for the MC Sampler"
+                    ),
+                    mo.md("---"),
+                    mo.md(
+                        "View this notebook on **molab** for source code & example details."
+                    ),
+                    mo.md(
+                        "> Note: There is an open [pull request](https://github.com/pymc-devs/pymc/pull/7883) in the PyMC repo for out-of-the-box progress tracking!"
+                    ),
+                    progress_tracker.display_widget,
+                ]
+            ),
+            mo.md("""
         ```python
         with progress_tracker:
             with model:
@@ -459,8 +482,9 @@ def _(mo, progress_tracker):
                     # ^^^ this is where you put the callback
                 )
         ```
-        """)
-    ])
+        """),
+        ]
+    )
     return
 
 
@@ -475,49 +499,109 @@ def _(model, progress_tracker, run_button):
                     chains=4,
                     callback=progress_tracker.callback,  # <-- this is where you put the callback
                 )
-    return
-
-
-app._unparsable_cell(
-    r"""
-    mo.hstack([
-        mo.md(
-        r\"\"\"
-    ### Stateful **InferenceData** xarray-based object is de-facto in memory storage object for model fitting results
-
-    - Argument `inplace=True` is more \"marimo-style\" but comes with its own tradeoffs, especially memory usage
-
-    \"\"\"
-    )
-    """,
-    name="_"
-)
+    return (idata,)
 
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-    ### Marimo's built-in caching can help!
+    ll_button = mo.ui.run_button(
+        label="Calculate log likelihood & posterior predictive checks"
+    )
+    return (ll_button,)
+
+
+@app.cell
+def _(idata, idata_w_ppc, mo):
+    mo.hstack(
+        [
+            mo.md(r"""
+    ### Stateful **InferenceData** xarray-based object is de-facto in memory storage object for model fitting results (Arviz, PyMC)
+
+    - Fracturing of data types/objects between PyMC, Arviz, and Bambi cause friction.
+    - Need to manage memory, disk, computation time
+
+    ```python
+    with model:
+        idata_w_ll = pm.compute_log_likelihood(idata)
+        idata_w_ppc = pm.sample_posterior_predictive(idata)
+
+    idata_w_ppc
+    ```
+    """),
+            mo.hstack(
+                [
+                    idata,
+                    idata_w_ppc,
+                ],
+                justify="start",
+            ),
+        ],
+        widths="equal",
+    )
+    return
+
+
+@app.cell
+def _(ll_button):
+    ll_button
+    return
+
+
+@app.cell
+def _(idata, ll_button, model):
+    if ll_button.value:
+        with model:
+            idata_w_ll = pm.compute_log_likelihood(idata)
+            idata_w_ppc = pm.sample_posterior_predictive(idata)
+    else:
+        idata_w_ppc = None
+    return (idata_w_ppc,)
+
+
+@app.cell
+def _(mo):
+    mo.hstack(
+        [
+            mo.md(
+                r"""
+    ### Utilize marimo caching!
 
     - Data retrieval and updating
-    - Avoiding recalculation of expensive steps of model parameters (e.g. prior hyperparameters, n sampling steps) we've **already tried**. 
+    - Avoiding recalculation of expensive steps of model parameters (e.g. prior hyperparameters, n sampling steps) we've **already tried**.
+
     """
+            ),
+            mo.md("""
+
+    ```python
+    import marimo as mo
+    from pydantic import BaseModel
+
+    class SamplerConfig(BaseModel):
+        tuning_samples: int
+        posterior_samples: int
+
+    with mo.persistent_cache("prior_predctive"):
+        with model:
+            idata_cached = pm.sample_prior_predictive()
+
+    idata_cached
+    ```
+    """),
+        ]
     )
     return
 
 
-@app.cell
-def _(mo):
-    mo.md(r""" """)
-    return
+@app.cell(disabled=True)
+def _(mo, model):
+    # @mo.persistent_cache
+    # def run_sampling(model: pm.Model) -> az.InferenceData:
 
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""Frequent OOM errors and long convergence times during model training point to need for a more "online" model tuning process."""
-    )
+    with mo.persistent_cache("prior_predctive"):
+        with model:
+            idata_cached = pm.sample_prior_predictive()
+    idata_cached
     return
 
 
@@ -525,12 +609,21 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-    What's next?
+    ## What's next?
+
+    **Frequent OOM errors and long convergence times during model training point to need for a more "online" model tuning process and thoughtful data management (esp for large datasets**).**
 
     - Utilize PyMC callback function for more immediate feedback and clearer intution of diagnostic statistics
     - Utilize and incorporate Arviz preview features and ZarrTrace sampling backend/storage
     - Translate vast canonical example notebook library from PyMC/Bambi/Arviz
-    - Investigate more advanced control flow mechanisms
+    - Investigate more control flow mechanisms
+
+    ---
+    ## Thank you!
+
+    > ty.schlich@gmail.com
+    >
+    > Ping me on Discord! **schlich** / *ty.schlich*
     """
     )
     return
@@ -540,11 +633,6 @@ def _(mo):
 def _():
     import marimo as mo
     return (mo,)
-
-
-@app.cell
-def _():
-    return
 
 
 if __name__ == "__main__":
