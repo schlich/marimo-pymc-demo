@@ -8,6 +8,7 @@ dependencies = [
     "arviz-plots>=0.6.0",
     "marimo>=0.14.17",
     "mofresh>=0.2.2",
+    "polars>=1.33.0",
     "pymc>=5.25.1",
     "ruff>=0.12.8",
 ]
