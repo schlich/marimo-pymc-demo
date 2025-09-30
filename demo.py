@@ -21,23 +21,6 @@ def _(mo):
     ---
     """
     )
-
-    mo.hstack(
-        [
-            mo.md("""
-            ## About me & my Bayesian journey:
-
-            - PhD in Neuroengineering @ Washington University in St Louis
-            - Data Engineer in industry since 2021 (Leasing, Marketing)
-            - Since April, contract work on Bayesian pricing model for aircraft resale value with *Aerotrends, ltd.*
-            - Looking for new opportunities!
-            """),
-            mo.image(
-                "public/inspectFit.jpg",
-                caption="Figure from Palamedes Toolbox (MATLAB) documentation. Bayesian logistic regression is a standard method at the core of 'psychophysics' - the science of quantifying sensation",
-            ),
-        ]
-    )
     return
 
 
@@ -118,7 +101,6 @@ def _(sys):
     from mofresh import HTMLRefreshWidget
     import math
 
-
     class PyMCProgress:
         """
         Displays PyMC progress using mofresh's HTMLRefreshWidget.
@@ -189,9 +171,7 @@ def _(sys):
 
                 total_divergences_all_chains_sampling += divergences_sampling
 
-                if (
-                    stage == "Done"
-                ):  # Ensure 'Done' shows full progress for that stage
+                if stage == "Done":  # Ensure 'Done' shows full progress for that stage
                     if (
                         chain_stat["completed_tuning"]
                         and not chain_stat["completed_sampling"]
@@ -250,17 +230,13 @@ def _(sys):
                 if self.total_overall_iterations > 0:
                     overall_frac = min(
                         1.0,
-                        self.total_callbacks_received
-                        / self.total_overall_iterations,
+                        self.total_callbacks_received / self.total_overall_iterations,
                     )
                 overall_percent = overall_frac * 100
 
                 overall_summary_text = f"Overall Progress: {self.total_callbacks_received}/{self.total_overall_iterations} ({overall_percent:.1f}%)"
                 if is_final:
-                    if (
-                        self.total_callbacks_received
-                        >= self.total_overall_iterations
-                    ):
+                    if self.total_callbacks_received >= self.total_overall_iterations:
                         overall_summary_text = f"Overall: Complete ({overall_percent:.1f}%). Total Sampling Divergences: {total_divergences_all_chains_sampling}"
                     else:
                         overall_summary_text = f"Overall: {self.total_callbacks_received}/{self.total_overall_iterations} ({overall_percent:.1f}%) Ended. Total Sampling Divergences: {total_divergences_all_chains_sampling}"
@@ -319,22 +295,16 @@ def _(sys):
             if not chain_stat["completed_tuning"]:
                 if (
                     not is_tuning_sample
-                    and chain_stat["current_steps_in_stage"]
-                    < self.tune_steps_per_chain
+                    and chain_stat["current_steps_in_stage"] < self.tune_steps_per_chain
                 ):
-                    chain_stat["current_steps_in_stage"] = (
-                        self.tune_steps_per_chain
-                    )
+                    chain_stat["current_steps_in_stage"] = self.tune_steps_per_chain
 
                 if is_tuning_sample:
                     chain_stat["stage"] = "Tuning"
                     chain_stat["total_steps_in_stage"] = self.tune_steps_per_chain
                     chain_stat["current_steps_in_stage"] += 1
 
-                if (
-                    chain_stat["current_steps_in_stage"]
-                    >= self.tune_steps_per_chain
-                ):
+                if chain_stat["current_steps_in_stage"] >= self.tune_steps_per_chain:
                     chain_stat["completed_tuning"] = True
                     chain_stat["stage"] = "Sampling"
                     chain_stat["current_steps_in_stage"] = 0
@@ -343,10 +313,7 @@ def _(sys):
                         self._update_display()
                         return
 
-            if (
-                chain_stat["completed_tuning"]
-                and not chain_stat["completed_sampling"]
-            ):
+            if chain_stat["completed_tuning"] and not chain_stat["completed_sampling"]:
                 if is_tuning_sample:
                     chain_stat["stage"] = "Sampling"
                     chain_stat["total_steps_in_stage"] = self.draw_steps_per_chain
@@ -355,10 +322,7 @@ def _(sys):
                     chain_stat["total_steps_in_stage"] = self.draw_steps_per_chain
                     chain_stat["current_steps_in_stage"] += 1
 
-                if (
-                    chain_stat["current_steps_in_stage"]
-                    >= self.draw_steps_per_chain
-                ):
+                if chain_stat["current_steps_in_stage"] >= self.draw_steps_per_chain:
                     chain_stat["completed_sampling"] = True
                     chain_stat["stage"] = "Done"
 
@@ -374,7 +338,9 @@ def _(sys):
             Updates the display with the final progress state.
             """
             if not self._initial_html_set and self.total_overall_iterations == 0:
-                self.display_widget.html = "<p style='font-family: monospace;'>No iterations performed.</p>"
+                self.display_widget.html = (
+                    "<p style='font-family: monospace;'>No iterations performed.</p>"
+                )
                 return
             if not self._initial_html_set and self.total_overall_iterations > 0:
                 # If finalize is called before any callback (e.g. error before sampling starts)
@@ -412,9 +378,7 @@ def _(sys):
                         "leapfrog_steps": 0,
                     }
                 )
-            self._initial_html_set = (
-                False  # Ensure the display updates from scratch
-            )
+            self._initial_html_set = False  # Ensure the display updates from scratch
 
         def __enter__(self):
             """
@@ -430,6 +394,7 @@ def _(sys):
             """
             self.finalize()
             return False  # Re-raise any exceptions
+
     return (PyMCProgress,)
 
 
@@ -457,9 +422,7 @@ def _(mo, progress_tracker):
         [
             mo.vstack(
                 [
-                    mo.md(
-                        "## A custom Anywidget progress tracker for the MC Sampler"
-                    ),
+                    mo.md("## A custom Anywidget progress tracker for the MC Sampler"),
                     mo.md("---"),
                     mo.md(
                         "View this notebook on **molab** for source code & example details."
@@ -632,6 +595,7 @@ def _(mo):
 @app.cell
 def _():
     import marimo as mo
+
     return (mo,)
 
 
