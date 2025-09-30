@@ -12,14 +12,58 @@ with app.setup:
 
 @app.cell
 def _(mo):
-    mo.md(
+    title_block = mo.md(
         r"""
     # Tightening the Bayesian Feedback Loop with Marimo
 
     ### Ty Schlichenmeyer
+    """
+    )
+
+    linkedin_row = mo.hstack(
+        [
+            mo.image(
+                "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg",
+                width=24,
+                height=24,
+            ),
+            mo.md(
+                "[Connect with me on LinkedIn](https://www.linkedin.com/in/ty-schlichenmeyer-01640436/)"
+            ),
+        ],
+        align="center",
+    )
+
+    github_row = mo.hstack(
+        [
+            mo.image(
+                "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg",
+                width=24,
+                height=24,
+            ),
+            mo.md(
+                "[Star this project on GitHub](https://github.com/schlich/marimo-pymc-demo)"
+            ),
+        ],
+        align="center",
+    )
+
+    note_block = mo.md(
+        r"""
+    > note: This notebook is designed to be viewed in "App Mode" using the [slides layout](https://docs.marimo.io/guides/apps/?h=slides#slides-layout). Switch to edit mode if you want to see the source code for a cell/slide.
 
     ---
     """
+    )
+
+    mo.vstack(
+        [
+            title_block,
+            note_block,
+            linkedin_row,
+            github_row,
+        ],
+        align="start",
     )
     return
 
@@ -62,7 +106,12 @@ def _(mo):
 @app.cell
 def _(mo, prior):
     mo.md(
-        r"""#### Simple example of adjusting priors: from [Exploratory Analysis of Bayesian models](https://arviz-devs.github.io/EABM/Chapters/Prior_posterior_predictive_checks.html)"""
+        r"""#### Simple example of adjusting priors: from [Exploratory Analysis of Bayesian models](https://arviz-devs.github.io/EABM/Chapters/Prior_posterior_predictive_checks.html)
+
+    - Set a baseline height using the `μ_height (cm)` input to shift the prior mean.
+    - Increase or decrease `σ_height (cm)` to widen or tighten the prior's spread.
+    - Re-run the prior predictive sampling to see how these tweaks move the cumulative distribution.
+    """
     )
 
     y = np.random.normal(174, 6, 127)
@@ -408,53 +457,62 @@ def _(PyMCProgress):
     return (progress_tracker,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo, progress_tracker):
-    progress_tracker
+    instructions = mo.md(
+        "Click **Run Inferencing!** to start posterior sampling. The progress tracker below updates once execution begins—allow a few seconds for updates depending on the environment."
+    )
+
     run_button = mo.ui.run_button(label="Run Inferencing!")
-    run_button
+
+    progress_info = mo.md(
+        "## A custom Anywidget progress tracker for the MC Sampler\n"
+        "\n---\n"
+        "View this notebook on **molab** for source code & example details.\n"
+        "> Note: There is an open [pull request](https://github.com/pymc-devs/pymc/pull/7883) in the PyMC repo for out-of-the-box progress tracking!"
+    )
+
+    code_snippet = mo.md(
+        """
+    ```python
+    with progress_tracker:
+        with model:
+            idata = pm.sample(
+                tune=200,
+                draws=200,
+                chains=4,
+                callback=progress_tracker.callback,  
+                # ^^^ this is where you put the callback
+            )
+    ```
+    """
+    )
+
+    layout = mo.hstack(
+        [
+            mo.vstack(
+                [
+                    instructions,
+                    run_button,
+                    progress_info,
+                    progress_tracker.display_widget,
+                ],
+                align="start",
+            ),
+            code_snippet,
+        ],
+        align="start",
+    )
+
+    layout
     return (run_button,)
 
 
 @app.cell
-def _(mo, progress_tracker):
-    mo.hstack(
-        [
-            mo.vstack(
-                [
-                    mo.md("## A custom Anywidget progress tracker for the MC Sampler"),
-                    mo.md("---"),
-                    mo.md(
-                        "View this notebook on **molab** for source code & example details."
-                    ),
-                    mo.md(
-                        "> Note: There is an open [pull request](https://github.com/pymc-devs/pymc/pull/7883) in the PyMC repo for out-of-the-box progress tracking!"
-                    ),
-                    progress_tracker.display_widget,
-                ]
-            ),
-            mo.md("""
-        ```python
-        with progress_tracker:
-            with model:
-                idata = pm.sample(
-                    tune=200,
-                    draws=200,
-                    chains=4,
-                    callback=progress_tracker.callback,  
-                    # ^^^ this is where you put the callback
-                )
-        ```
-        """),
-        ]
-    )
-    return
-
-
-@app.cell
 def _(model, progress_tracker, run_button):
-    with progress_tracker:
-        if run_button.value:
+    idata = az.InferenceData()
+    if run_button.value:
+        with progress_tracker:
             with model:
                 idata = pm.sample(
                     tune=200,
@@ -474,8 +532,8 @@ def _(mo):
 
 
 @app.cell
-def _(idata, idata_w_ppc, mo):
-    mo.hstack(
+def _(idata, idata_w_ppc, ll_button, mo):
+    inference_layout = mo.hstack(
         [
             mo.md(r"""
     ### Stateful **InferenceData** xarray-based object is de-facto in memory storage object for model fitting results (Arviz, PyMC)
@@ -501,20 +559,31 @@ def _(idata, idata_w_ppc, mo):
         ],
         widths="equal",
     )
-    return
+    _instructions = mo.md(
+        r"""
 
+    - `pm.compute_log_likelihood(idata)` augments the existing object with a `log_likelihood` group, so the printed summary will show this additional block alongside the original posterior draws.
+    - `pm.sample_posterior_predictive(idata)` stores posterior predictive samples in `idata_w_ppc`, giving you a cached view of simulated observations derived from the updated state.
+    """
+    )
 
-@app.cell
-def _(ll_button):
-    ll_button
+    combined_layout = mo.vstack(
+        [
+            inference_layout,
+            mo.vstack([_instructions, ll_button], align="start"),
+        ],
+        align="start",
+    )
+
+    combined_layout
     return
 
 
 @app.cell
 def _(idata, ll_button, model):
-    if ll_button.value:
+    if ll_button.value and hasattr(idata, "posterior") and idata.posterior is not None:
         with model:
-            idata_w_ll = pm.compute_log_likelihood(idata)
+            pm.compute_log_likelihood(idata)
             idata_w_ppc = pm.sample_posterior_predictive(idata)
     else:
         idata_w_ppc = None
@@ -582,11 +651,6 @@ def _(mo):
     - Investigate more control flow mechanisms
 
     ---
-    ## Thank you!
-
-    > ty.schlich@gmail.com
-    >
-    > Ping me on Discord! **schlich** / *ty.schlich*
     """
     )
     return
